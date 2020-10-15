@@ -140,23 +140,7 @@ ynh_replace_string --match_string="language" --replace_string="$language" --targ
 #=================================================
 ynh_script_progression --message="Deploying..."
 
-pushd "$final_path"
-	php$phpversion artisan monica:update --force
-	php$phpversion artisan setup:production --email=$email --password=$password -vvv -n
-	php$phpversion artisan passport:client --password -n > key.txt
-	mobile_id=$( cd $final_path && tail -2 key.txt | head -1 | cut -c 12- )
-	mobile_key=$( cd $final_path && tail -1 key.txt | cut -c 16- )
-	private_key=$(sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g' storage/oauth-private.key)
-	public_key=$(sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g' storage/oauth-public.key)
-	ynh_replace_string  --match_string="__IDENTITY__"   --replace_string="$mobile_id"   --target_file="$config"
-	ynh_replace_string  --match_string="__KEY__"        --replace_string="$mobile_key"  --target_file="$config"
-	ynh_app_setting_set --app=$app --key=mobile_id --value=$mobile_id
-	ynh_app_setting_set --app=$app --key=mobile_key --value=$mobile_key
-	ynh_app_setting_set --app=$app --key=private_key --value=$private_key
-	ynh_app_setting_set --app=$app --key=private_key --value=$public_key
-	rm -f key.txt
-	php$phpversion artisan config:clear
-popd
+
 
 #=================================================
 # STORE THE CONFIG FILE CHECKSUM
@@ -217,9 +201,7 @@ echo "
 -----------------------------------------------------------
 | You can now sign in to your account:
 | username: $email
-| password: $password
 | URL:      https://$domain
-| It is advised to change your password after first login.
 -----------------------------------------------------------
 Setup is done. Have fun.
 
