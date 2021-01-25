@@ -174,23 +174,28 @@ fi
 #=================================================
 ynh_script_progression --message="Deploying..."
 
-pushd "$final_path"
-	php$phpversion artisan setup:production --email=$email --password=$password -vvv -n --force
-	php$phpversion artisan passport:client --password -n > key.txt
-	mobile_id=$( cd $final_path && tail -2 key.txt | head -1 | cut -c 12- )
-	mobile_key=$( cd $final_path && tail -1 key.txt | cut -c 16- )
-	private_key=$(sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g' storage/oauth-private.key)
-	public_key=$(sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g' storage/oauth-public.key)
-	ynh_replace_string  --match_string="__IDENTITY__"   --replace_string="$mobile_id"   --target_file="$config"
-	ynh_replace_string  --match_string="__KEY__"        --replace_string="$mobile_key"  --target_file="$config"
-	ynh_app_setting_set --app=$app --key=mobile_id --value=$mobile_id
-	ynh_app_setting_set --app=$app --key=mobile_key --value=$mobile_key
-	ynh_app_setting_set --app=$app --key=private_key --value=$private_key
-	ynh_app_setting_set --app=$app --key=private_key --value=$public_key
-	rm -f key.txt
-	php$phpversion artisan config:clear
-popd
+# pushd "$final_path"
+# 	php$phpversion artisan setup:production --email=$email --password=$password -vvv -n --force
+# 	php$phpversion artisan passport:client --password -n > key.txt
+# 	mobile_id=$( cd $final_path && tail -2 key.txt | head -1 | cut -c 12- )
+# 	mobile_key=$( cd $final_path && tail -1 key.txt | cut -c 16- )
+# 	private_key=$(sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g' storage/oauth-private.key)
+# 	public_key=$(sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g' storage/oauth-public.key)
+# 	ynh_replace_string  --match_string="__IDENTITY__"   --replace_string="$mobile_id"   --target_file="$config"
+# 	ynh_replace_string  --match_string="__KEY__"        --replace_string="$mobile_key"  --target_file="$config"
+# 	ynh_app_setting_set --app=$app --key=mobile_id --value=$mobile_id
+# 	ynh_app_setting_set --app=$app --key=mobile_key --value=$mobile_key
+# 	ynh_app_setting_set --app=$app --key=private_key --value=$private_key
+# 	ynh_app_setting_set --app=$app --key=private_key --value=$public_key
+# 	rm -f key.txt
+# 	php$phpversion artisan config:clear
+# popd
 
+pushd $final_path
+#composer install --no-interaction --no-dev --ignore-platform-reqs
+	php$phpversion artisan key:generate
+	php$phpversion artisan setup:production --email=$email --password=$password -v
+popd
 #=================================================
 # STORE THE CONFIG FILE CHECKSUM
 #=================================================
@@ -200,12 +205,15 @@ ynh_script_progression --message="Storing the config file checksum..."
 ynh_store_file_checksum --file="$config"
 
 #=================================================
-# INSTALL THE CRON FILE
+# SETUP A CRON FILE
 #=================================================
-ynh_script_progression --message="Installing the cron file..."
+ynh_script_progression --message="Setuping a cron..."
 
-echo "* * * * * -u $app /usr/bin/php$phpversion $final_path/artisan schedule:run" > /tmp/cron$app
-mv /tmp/cron$app /etc/cron.d/$app
+cp ../conf/cron /etc/cron.d/$app
+
+ynh_replace_string --match_string="__FINALPATH__" --replace_string="$final_path" --target_file="/etc/cron.d/$app"
+ynh_replace_string --match_string="__APP__" --replace_string="$app" --target_file="/etc/cron.d/$app"
+ynh_replace_string --match_string="__PHPVERSION__" --replace_string="$phpversion" --target_file="/etc/cron.d/$app"
 
 #=================================================
 # GENERIC FINALIZATION
