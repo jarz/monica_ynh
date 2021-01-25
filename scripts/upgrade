@@ -153,14 +153,13 @@ config="$final_path/.env"
 ynh_backup_if_checksum_is_different --file="$config"
 cp ../conf/.env "$config"
 
-ynh_replace_string  --match_string="random_key" --replace_string="$random_key" --target_file="$config"
-ynh_replace_string  --match_string="yunouser"   --replace_string="$db_name"    --target_file="$config"
-ynh_replace_string  --match_string="yunopass"   --replace_string="$db_pwd"     --target_file="$config"
-ynh_replace_string  --match_string="yunobase"   --replace_string="$db_name"    --target_file="$config"
-ynh_replace_string  --match_string="yunomail"   --replace_string="$email"      --target_file="$config"
-ynh_replace_string  --match_string="yunodomain" --replace_string="$domain"     --target_file="$config"
-ynh_replace_string  --match_string="language"   --replace_string="$language"   --target_file="$config"
-ynh_replace_string  --match_string="__DOMAIN__" --replace_string="$domain"     --target_file="$config"
+ynh_replace_string --match_string="__DOMAIN__"   --replace_string="$domain"     --target_file="$config"
+ynh_replace_string --match_string="random_key"   --replace_string="$random_key" --target_file="$config"
+ynh_replace_string --match_string="__DB_PWD__"   --replace_string="$db_pwd"     --target_file="$config"
+ynh_replace_string --match_string="__DB_NAME__"  --replace_string="$db_name"    --target_file="$config"
+ynh_replace_string --match_string="__EMAIL__"    --replace_string="$email"      --target_file="$config"
+ynh_replace_string --match_string="__LANGUAGE__" --replace_string="$language"   --target_file="$config"
+
 # Enable or disable DAV support for users
 if [ $dav_support -eq 0 ]
 then
@@ -254,18 +253,6 @@ ynh_script_progression --message="Securing files and directories..."
 # Set permissions on app files
 chown -R $app: $final_path
 chmod -R 775 "$final_path/storage"
-
-#=================================================
-# SETUP SSOWAT
-#=================================================
-ynh_script_progression --message="Upgrading SSOwat configuration..."
-
-# Make app public if necessary
-if [ $is_public -eq 1 ]
-then
-	# unprotected_uris allows SSO credentials to be passed anyway
-	ynh_app_setting_set --app=$app --key=unprotected_uris --value="/"
-fi
 
 #=================================================
 # RELOAD NGINX
